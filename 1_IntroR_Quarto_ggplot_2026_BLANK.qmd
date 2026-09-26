@@ -100,6 +100,7 @@ The **fivethirtyeight** package contains data sets written about on the FiveThir
 
 ```{r}
 install.packages("fivethirtyeight")
+
 library(fivethirtyeight)
 ```
 
@@ -227,15 +228,19 @@ More detail here, to not worry about yet. https://ggplot2.tidyverse.org/referenc
 - Can you make a boxplot that shows the price percent depending on fruity?
 
 ```{r}
-fruity <- ggplot(candy_rankings) + aes(x = fruit, y = pricepercent) + geom_boxplot()
+fruitystatus <- ggplot(candy_rankings) + aes(x = fruity, y = pricepercent) + geom_boxplot()
 
-fruity
+fruitystatus
 ```
 
 2.  Are sweeter candies more expensive? Do the candies with higher sugarpercent have higher winpercent? Plot this relationship.
 
 ```{r}
+sweetness <- ggplot(candy_rankings) + 
+  aes(x = sugarpercent , y = winpercent) + geom_point()
 
+
+sweetness
 ```
 
 ## PRETTY TIME!
