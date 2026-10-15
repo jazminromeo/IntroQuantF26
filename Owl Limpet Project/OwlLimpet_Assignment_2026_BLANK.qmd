@@ -163,8 +163,11 @@ Make a new dataframe out of the `No_CDM_Sizes` that has a column called *density
 
 ```{r}
 Limpet_Density <- No_CDM_Sizes |>
-  group_by(year) |> 
-  summarize(density = n()/sum(TransectLengths*2))
+  group_by(site, year, transect_length_m) |> 
+  count(transect_num, name = "limpet count")
+
+Limpet_Density <- Limpet_Density |>
+  mutate(density = `limpet count`/transect_length_m*2)
  
 Limpet_Density
 ```
