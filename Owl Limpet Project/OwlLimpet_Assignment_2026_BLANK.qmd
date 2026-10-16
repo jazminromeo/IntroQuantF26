@@ -135,6 +135,7 @@ For the population density analysis, we will analyze data from Shaws Cove, Heisl
 ```{r}
 No_CDM_Sizes <- New_SizeData_2022_2025 |> 
   filter(site != "Corona del Mar")
+No_CDM_Sizes
 ```
 
 #### 2.1. How many limpets did we measure at each site in each year for sizes?
@@ -163,11 +164,10 @@ Make a new dataframe out of the `No_CDM_Sizes` that has a column called *density
 
 ```{r}
 Limpet_Density <- No_CDM_Sizes |>
-  group_by(site, year, transect_length_m) |> 
-  count(transect_num, name = "limpet count")
-
-Limpet_Density <- Limpet_Density |>
-  mutate(density = `limpet count`/transect_length_m*2)
+  select(transect_length_m, site, transect_num, year) |> 
+  group_by(transect_length_m, site, transect_num, year) |> 
+  summarize(count = n()) |> 
+  mutate(density = count/(transect_length_m*2))
  
 Limpet_Density
 ```
@@ -179,9 +179,17 @@ Do you see any patterns just from examining this table of values?
 What was the mean limpets per square meter across all sites? And the standard deviation? And standard error?
 
 ```{r}
-Limpet_Density |> 
+Limpet_Density$density |> 
+  mean()
 
+Limpet_Density$density |> 
+  sd()
 
+n <- Limpet_Density$density |> 
+  length()
+
+Limpet_Density$density |> 
+  sd()/sqrt(n)
 ```
 
 Now create a summary table in which you calculate separate mean and standard deviation for each site and year (Shaws vs. Heisler vs. Treasure Cove)? What was the standard error? Round the mean and standard error to one decimal place. (look up the `round()` function!)
@@ -189,11 +197,14 @@ Now create a summary table in which you calculate separate mean and standard dev
 ```{r}
 # use summarize() to calculate the mean and standard error (sd/sqrt(n)) for the two locations
 LimpetPopSummary <- Limpet_Density |>
-  
-  
-  
-  
- 
+  group_by(site, year)|> 
+  summarize(mean_density = mean(density, na.rm = TRUE),
+            sd_density = sd(density, na.rm = TRUE), 
+            n = n(), # count
+            se_density = sd_density/sqrt(n)) |>  # standard error
+  mutate_at(vars(mean_density, sd_density, se_density), # bonus line to reduce digits
+            .funs = round, 2) 
+
 # Display your summary nicely using kable(). 
 knitr::kable(LimpetPopSummary)
 ```
@@ -203,19 +214,30 @@ knitr::kable(LimpetPopSummary)
 Boxplot, using the `Limpet_density` object, using fill for year. Label the Y-axis to say "Limpets per square meter".
 
 ```{r}
-Limpet_Density |> ggplot() + 
- 
-  
+Limpet_Density |> ggplot() +
+  aes(x = site,
+      y = density,
+      fill = year) +
+  geom_boxplot() +
+  labs(x = "Site",
+       y = "Limpets per square meter")
 ```
 
 A column plot with errorbars, and fill = year, using your new `LimpetPopSummary` object. Make sure to label the y-axis appropriately.
 
 ```{r}
 LimpetPopSummary |> ggplot()+
- 
-  
-  
-
+  aes(x = site,
+      y = mean_density,
+      fill = year) +
+  geom_col(position = position_dodge()) +
+  geom_errorbar(aes(ymin = mean_density - sd_density, 
+                    ymax = mean_density + sd_density),
+                position = position_dodge(0.9),
+                width = 0.2
+                ) +
+  labs(x = "Site",
+       y = "Limpets per square meter")
 ```
 
 A `geom_point()` or `geom_jitter()`plot to visualize individual transect density observations
