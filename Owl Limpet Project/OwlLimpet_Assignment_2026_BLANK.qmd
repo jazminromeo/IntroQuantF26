@@ -315,6 +315,16 @@ Since there was no difference in means, we'll ignore year at Treasure Cove from 
 #### 2.8 EXTRA CREDIT: Do an ANOVA comparing Shaws, Heisler, and Treasure Cove 2025 density data (exclude 2023 so that the sample size is similar between all three). Use a Tukey post-hoc test. Explain the results.
 
 ```{r}
+Limpet_Density <- New_SizeData_2022_2025 |> 
+  filter(year == 2025,
+         site |> 
+           c("Shaws", "Heisler", "Treasure Cove"))
+
+model <- lm(density~site, data = Limpet_Density)
+
+ggpplot(Limpet_Density) +
+  aes(x = site, y = density) +
+  geom_boxplot()
 
 
 ```
