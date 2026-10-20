@@ -243,9 +243,13 @@ LimpetPopSummary |> ggplot()+
 A `geom_point()` or `geom_jitter()`plot to visualize individual transect density observations
 
 ```{r}
-Limpet_Density |> ggplot() + 
-  
-  
+Limpet_Density |>
+  ggplot() +
+  aes(x = transect_num, y = density) + 
+  geom_point() +
+  labs(title = "Individual Limpet Density Observations",
+       x = "Transect",
+       y = "Limpet Density")
   
   
 ```
@@ -270,6 +274,9 @@ Is it roughly the same so that we can compare? Is it enough to run a statistical
 
 ```{r}
 Limpet_Density |> 
+  group_by(site, year) |> 
+  summarize(sample_size = n_distinct(transect_num),
+            .groups = "drop")
 ```
 
 #### 2.6. Does average number of owl limpets per square meter differ significantly between Heisler Park and Shaws Cove?
@@ -279,9 +286,8 @@ Filter the data to only include those sites before putting it into the `t.test()
 ```{r t-test}
 # run a t-test on your count data from each site (Limpet_Density)
 ShawsHeislerDensity <- Limpet_Density |> 
-
-
-t.test(     , data = ShawsHeislerDensity)
+  filter(site == "Heisler Park" | site == "Shaws Cove")
+t.test(density ~ site, data = ShawsHeislerDensity)
 
 ```
 
@@ -291,8 +297,17 @@ Explain the results of this t-test. Are you surprised by this result, given the 
 
 ```{r}
 TC_density <- Limpet_Density |>
+  subset(site == "Treasure Cove")
+t.test(density~year, data = TC_density)
 
-t.test(    )
+TC_density |> 
+  ggplot() +
+  aes(x = year, y = density) + 
+  geom_point() +
+  labs(title = "Limpet Population Density at Treasure Cove",
+       x = "Sample Year",
+       y = "Limpet Density")
+  
 ```
 
 Since there was no difference in means, we'll ignore year at Treasure Cove from now on and just pool our data to make it easier for ourselves.
