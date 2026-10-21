@@ -219,7 +219,8 @@ Limpet_Density |> ggplot() +
       y = density,
       fill = year) +
   geom_boxplot() +
-  labs(x = "Site",
+  labs(title = "Limpet Density by Site",
+       x = "Site",
        y = "Limpets per square meter")
 ```
 
@@ -236,7 +237,8 @@ LimpetPopSummary |> ggplot()+
                 position = position_dodge(0.9),
                 width = 0.2
                 ) +
-  labs(x = "Site",
+  labs(title = "Limpet Density per Site",
+       x = "Site",
        y = "Limpets per square meter")
 ```
 
@@ -297,7 +299,7 @@ Explain the results of this t-test. Are you surprised by this result, given the 
 
 ```{r}
 TC_density <- Limpet_Density |>
-  subset(site == "Treasure Cove")
+  filter(site == "Treasure Cove")
 t.test(density~year, data = TC_density)
 
 TC_density |> 
@@ -315,17 +317,7 @@ Since there was no difference in means, we'll ignore year at Treasure Cove from 
 #### 2.8 EXTRA CREDIT: Do an ANOVA comparing Shaws, Heisler, and Treasure Cove 2025 density data (exclude 2023 so that the sample size is similar between all three). Use a Tukey post-hoc test. Explain the results.
 
 ```{r}
-Limpet_Density <- New_SizeData_2022_2025 |> 
-  filter(year == 2025,
-         site |> 
-           c("Shaws", "Heisler", "Treasure Cove"))
-
-model <- lm(density~site, data = Limpet_Density)
-
-ggpplot(Limpet_Density) +
-  aes(x = site, y = density) +
-  geom_boxplot()
-
+Limpet_Density <- 
 
 ```
 
@@ -340,30 +332,24 @@ ggpplot(Limpet_Density) +
 
 SizeData_2022_2025 |> 
   group_by(site, year) |> 
-  summarize(
-    sample_size = n(),
-    
-    
-  )
+  summarize(mean_shell_length_mm = mean(shell_length_mm, na.rm = TRUE),
+            sd_shell_length_mm = sd(shell_length_mm, na.rm = TRUE),
+            n = n()) |> 
+  mutate_at(vars(mean_shell_length_mm, sd_shell_length_mm),
+            .funs = round, 2) 
 
-mean_density = mean(density, na.rm = TRUE),
-sd_density = sd(density, na.rm = TRUE), 
-n = n(), # count
-se_density = sd_density/sqrt(n)) |>  # standard error
-    mutate_at(vars(mean_density, sd_density, se_density), # bonus line to reduce digits
-              .funs = round, 2) 
-  
-  # Display your summary nicely using kable(). 
-  knitr::kable(LimpetPopSummary)
+knitr::kable(SizeData_2022_2025)
 ```
 
 ##### 3.1.2 Graph the shell lengths at each site using a boxplot. What do you observe?
 
 ```{r}
 ggplot(SizeData_2022_2025) +
-
-  
-  
+  aes(x = site, y = shell_length_mm, fill = year) +
+  geom_boxplot() +
+  labs(title = "Shell Length per Site",
+       x = "Site",
+       y = "Shell Length (mm)")
 ```
 
 #### 3.2. Is there a [statistically significant]{.underline} difference in [mean]{.underline} size between limpets measured at Treasure Cove (a relatively low-impact site) compared to CDM (a high impact site)?
@@ -385,22 +371,24 @@ T-Test assumptions (for a Student's T-test)
 
 # create the appropriate filter to include only Treasure Cove and CDM data
 CDM_TC_Sizes <- SizeData_2022_2025 |> 
-
+  filter(site == "Treasure Cove" | site == "Corona del Mar")
   
 # set the linear model for testing the assumptions
-model <- lm(   )
+model <- lm(shell_length_mm ~ site, data = CDM_TC_Sizes)
 
 # Examine plot of Residuals vs. Fitted values
 plot(model, which = 1)
 
 # F-test for homogeneity of variance - if p-value < 0.05 then variances are different. 
-var.test(     )
+var.test(shell_length_mm ~ site, data = CDM_TC_Sizes)
 
 # NOTE: if your sample fails this test, have no fear! Welch's t-test (the default that R uses) is okay to use with unequal variances. 
 
 ```
 
 - Is the distribution of the model residuals approximately normal?
+
+  No because the distribution of residuals has data clumping on both ends, rather than an even distribution around the fitted line.
 
 ```{r}
 ## Test for normality
@@ -418,7 +406,7 @@ Why will we not pay attention to this Shapiro-Wilk test result? Because the samp
 
 ```{r t-test or Wilcox}
 # calculate the t-test results
-t.test(      )
+t.test(CDM_TC_Sizes$shell_length_mm) # telling us if the shell lengths between sites are different enough to be statistically significant
 ```
 
 #### [3.3 Graph your results using a column plot with error bars for standard error]{.underline}
@@ -427,13 +415,28 @@ For full credit, have well centered error bars and professionally labeled axes (
 
 ```{r}
 CDM_TC_Sizes |>
-  
-
+  group_by(site) |> 
+  summarize(mean_shell_length_mm = mean(shell_length_mm),
+            sd_shell_length_mm = sd(shell_length_mm),
+            n = n(),
+            se_shell_length_mm = sd_shell_length_mm/sqrt(n)) |> 
+  ggplot() +
+  aes(x = site, y = mean_shell_length_mm) +
+  geom_col() +
+  geom_errorbar(aes(ymin = mean_shell_length_mm - sd_shell_length_mm, 
+                    ymax = mean_shell_length_mm + sd_shell_length_mm),
+                         position = position_dodge(0.9),
+                         width = 0.2) +
+  labs(title = "Shell Length at CDM and Treasure Cove",
+       x = "Site",
+       y = "Shell Length")
 ```
 
 #### [3.4 - Interpret and explain the results of your test]{.underline}
 
 Are we pretty confident that these samples were drawn from different populations? Why is the standard error so small?
+
+We are confident that these samples were drawn from different populations
 
 #### 3.5 - EXTRA CREDIT: repeat this analysis to see if the same result holds for the comparison at Heisler Park (high impact site) vs. Shaws Cove (low impact site).
 
@@ -459,6 +462,9 @@ Clean up and combine the 2023, 2024 and 2025 data for Territories:
 load(file = "Data/All_Territories.Rdata")
 
 load(file = "Data/FenbergTerr.Rdata")
+
+All_Territories = All_Territories |>  
+  select(site, numbsquares, location, year, size_mm)
 ```
 
 #### 4.2 How many limpet territories did we measure?
@@ -466,6 +472,7 @@ load(file = "Data/FenbergTerr.Rdata")
 ```{r}
 ## How many territories were measured at each site in each year? 
 All_Territories |> 
+  count(site, year)
 ```
 
 #### 4.3 Calculate meaningful variables from our measured values
@@ -478,6 +485,10 @@ Create new columns for:
 
 ```{r}
 All_Territories_area_mass <- All_Territories |> 
+  mutate(territory_area_mm = numbsquares*19*19) |> 
+  mutate(mass_g = 0.00009*size_mm ^ 3.0471)
+
+
   # create a new column for territory area in mm^2 using the "numbsquares" column
          # mesh = 19 mm x 19 mm 
 
@@ -495,27 +506,50 @@ Explore the relationship between mass_g, and area_mm2 using scatter plots.
 # plot size_mm vs area_mm2 scatterplot with best fit regression line, no SE zone, not separated by site
 All_Territories_area_mass |> 
   ggplot() + 
-  
+  aes(x = size_mm, y = territory_area_mm) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+labs(title = "Limpet Size vs Territory Size",
+     x = "Limpet Size (mm)",
+     y = "Territory Area (mm ^ 2)")
 ```
 
 ```{r}
 ## Scatter plot with site mapped to color
 All_Territories_area_mass |>
   ggplot() + 
- 
+  aes(x = size_mm, y = territory_area_mm, color = site) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Limpet Size vs Territory Size",
+       x = "Limpet Size (mm)",
+       y = "Territory Area (mm ^ 2)")
 ```
 
 ```{r}
 #  mass_g vs. area_mm2 scatterplot with best fit regression line, no SE zone, faceted by habitat
 All_Territories_area_mass |>
   ggplot() + 
-  
+  aes(x = size_mm, y = territory_area_mm) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Limpet Mass vs Territory Area",
+       x = "Limpet Mass (g)",
+       y = "Territory Area (mm ^ 2)") +
+  facet_wrap(year ~ site)
 ```
 
 #### 4.5 What observations do you make about these plots? What do you find interesting about them? Explain one observation and make one more plot of your choosing to explore something you found interesting.
 
 ```{r}
-
+All_Territories_area_mass |>
+  ggplot() + 
+  aes(x = size_mm, y = mass_g) +
+  geom_point() +
+  labs(title = "Limpet Mass vs Territory Area",
+       x = "Limpet Mass (g)",# change to length mm
+       y = "Territory Area (mm ^ 2)") + # change to mass g
+  facet_wrap(year ~ site)
 ```
 
 #### 4.6. What important assumptions of tests of linear regression do these scatter plots fail? How can you tell?
