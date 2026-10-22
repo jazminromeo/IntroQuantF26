@@ -505,11 +505,10 @@ Explore the relationship between mass_g, and area_mm2 using scatter plots.
 ```{r}
 # plot size_mm vs area_mm2 scatterplot with best fit regression line, no SE zone, not separated by site
 All_Territories_area_mass |> 
-  ggplot() + 
-  aes(x = size_mm, y = territory_area_mm) +
+  ggplot(aes(x = mass_g, y = territory_area_mm)) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE) +
-labs(title = "Limpet Size vs Territory Size",
+labs(title = "Limpet Shell Size vs Territory Size",
      x = "Limpet Size (mm)",
      y = "Territory Area (mm ^ 2)")
 ```
@@ -518,10 +517,10 @@ labs(title = "Limpet Size vs Territory Size",
 ## Scatter plot with site mapped to color
 All_Territories_area_mass |>
   ggplot() + 
-  aes(x = size_mm, y = territory_area_mm, color = site) +
+  aes(x = mass_g, y = territory_area_mm, color = site) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE) +
-  labs(title = "Limpet Size vs Territory Size",
+  labs(title = "Limpet Shell Size vs Territory Size",
        x = "Limpet Size (mm)",
        y = "Territory Area (mm ^ 2)")
 ```
@@ -530,7 +529,7 @@ All_Territories_area_mass |>
 #  mass_g vs. area_mm2 scatterplot with best fit regression line, no SE zone, faceted by habitat
 All_Territories_area_mass |>
   ggplot() + 
-  aes(x = size_mm, y = territory_area_mm) +
+  aes(x = mass_g, y = territory_area_mm) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE) +
   labs(title = "Limpet Mass vs Territory Area",
@@ -558,7 +557,7 @@ All_Territories_area_mass |>
 
 # write a linear model for the relationship, then use the plot() function on the model object to show the residuals vs. fitted values and QQ plots to assess your regression. 
 
-linear_model <- lm(     )
+linear_model <- lm(mass_g ~ territory_area_mm, data = All_Territories_area_mass)
 
 plot(linear_model)
 ```
