@@ -151,7 +151,7 @@ No_CDM_Sizes |>
 ## How many did we measure at each site? 
 No_CDM_Sizes |> 
   group_by(site) |> 
-  summarize(count = n())
+  summarise(count = n())
 # How many did we measure in each transect? 
 No_CDM_Sizes |> 
   group_by(site) |> 
@@ -166,7 +166,7 @@ Make a new dataframe out of the `No_CDM_Sizes` that has a column called *density
 Limpet_Density <- No_CDM_Sizes |>
   select(transect_length_m, site, transect_num, year) |> 
   group_by(transect_length_m, site, transect_num, year) |> 
-  summarize(count = n()) |> 
+  summarise(count = n()) |> 
   mutate(density = count/(transect_length_m*2))
  
 Limpet_Density
@@ -198,7 +198,7 @@ Now create a summary table in which you calculate separate mean and standard dev
 # use summarize() to calculate the mean and standard error (sd/sqrt(n)) for the two locations
 LimpetPopSummary <- Limpet_Density |>
   group_by(site, year)|> 
-  summarize(mean_density = mean(density, na.rm = TRUE),
+  summarise(mean_density = mean(density, na.rm = TRUE),
             sd_density = sd(density, na.rm = TRUE), 
             n = n(), # count
             se_density = sd_density/sqrt(n)) |>  # standard error
@@ -277,7 +277,7 @@ Is it roughly the same so that we can compare? Is it enough to run a statistical
 ```{r}
 Limpet_Density |> 
   group_by(site, year) |> 
-  summarize(sample_size = n_distinct(transect_num),
+  summarise(sample_size = n_distinct(transect_num),
             .groups = "drop")
 ```
 
@@ -317,8 +317,24 @@ Since there was no difference in means, we'll ignore year at Treasure Cove from 
 #### 2.8 EXTRA CREDIT: Do an ANOVA comparing Shaws, Heisler, and Treasure Cove 2025 density data (exclude 2023 so that the sample size is similar between all three). Use a Tukey post-hoc test. Explain the results.
 
 ```{r}
-Limpet_Density <- 
+anova_density_data <- Limpet_Density |> 
+  filter(year == "2025" | year == "2024")
 
+Limpet_Density_model <- lm(density ~ site, data = anova_density_data)
+
+ggplot(anova_density_data) +
+  aes(x = site, y = density) +
+  geom_boxplot()
+
+plot(Limpet_Density_model, which = 2)
+
+shapiro.test(Limpet_Density_model$residuals)
+
+bartlett.test(density ~ site, data = anova_density_data)
+
+anova(Limpet_Density_model)
+
+TukeyHSD(aov(density ~ site, data = anova_density_data))
 ```
 
 ## Part 3: Size
@@ -332,7 +348,7 @@ Limpet_Density <-
 
 SizeData_2022_2025 |> 
   group_by(site, year) |> 
-  summarize(mean_shell_length_mm = mean(shell_length_mm, na.rm = TRUE),
+  summarise(mean_shell_length_mm = mean(shell_length_mm, na.rm = TRUE),
             sd_shell_length_mm = sd(shell_length_mm, na.rm = TRUE),
             n = n()) |> 
   mutate_at(vars(mean_shell_length_mm, sd_shell_length_mm),
@@ -416,7 +432,7 @@ For full credit, have well centered error bars and professionally labeled axes (
 ```{r}
 CDM_TC_Sizes |>
   group_by(site) |> 
-  summarize(mean_shell_length_mm = mean(shell_length_mm),
+  summarise(mean_shell_length_mm = mean(shell_length_mm),
             sd_shell_length_mm = sd(shell_length_mm),
             n = n(),
             se_shell_length_mm = sd_shell_length_mm/sqrt(n)) |> 
@@ -436,14 +452,45 @@ CDM_TC_Sizes |>
 
 Are we pretty confident that these samples were drawn from different populations? Why is the standard error so small?
 
-We are confident that these samples were drawn from different populations
+We are confident that these samples were drawn from different populations !!!!!!!!!!!!!!!
 
 #### 3.5 - EXTRA CREDIT: repeat this analysis to see if the same result holds for the comparison at Heisler Park (high impact site) vs. Shaws Cove (low impact site).
 
 If you would like to test whether size differs by predicted human impact, at CDM and TC "near" means high impact and "far" means low impact. Heisler was our high impact site and Shaws was our low impact site.
 
 ```{r}
+Heisler_Shaws_Sizes <- SizeData_2022_2025 |> 
+  filter(site == "Heisler Park" | site == "Shaws Cove")
 
+Heisler_Shaws_model <- lm(shell_length_mm ~ site, data = Heisler_Shaws_Sizes)
+
+plot(Heisler_Shaws_model, which = 1)
+
+plot(Heisler_Shaws_model, which = 2)
+
+var.test(shell_length_mm ~ site, data = Heisler_Shaws_Sizes)
+
+shapiro.test(Heisler_Shaws_model$residuals)
+
+t.test(Heisler_Shaws_Sizes$shell_length_mm)
+
+Heisler_Shaws_Sizes |>
+  group_by(site) |> 
+  summarise(mean_shell_length_mm = mean(shell_length_mm),
+            sd_shell_length_mm = sd(shell_length_mm),
+            n = n(),
+            se_shell_length_mm = sd_shell_length_mm/sqrt(n)) |> 
+  ggplot() +
+  aes(x = site, y = mean_shell_length_mm) +
+  geom_col() +
+  geom_errorbar(aes(ymin = mean_shell_length_mm - sd_shell_length_mm, 
+                    ymax = mean_shell_length_mm + sd_shell_length_mm),
+                position = position_dodge(0.9),
+                width = 0.2) +
+  labs(title = "Shell Length Difference Predicted by Human Impact at Heisler Park
+       and Shaws Cove",
+       x = "Site",
+       y = "Shell Length")
 ```
 
 #### 3.6. MORE EXTRA CREDIT: conduct an ANOVA to test for differences in shell length between all four sites. Show your tests for all assumptions and make a graph.
@@ -570,12 +617,14 @@ One way to transform data that has this shape is to apply a log-transformation. 
 # plot a scatterplot log area on y axis by log mass_g on x axis, best fit regression line but no SE interval
 
 All_Territories_area_mass |> ggplot() + 
-
+  aes(x = log(mass_g), y = log(territory_area_mm)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
 ```
 
 ```{r}
 # write the linear model object and examine the residual and QQ plots
-log_model <- lm(     )
+log_model <- lm(log(mass_g)~log(territory_area_mm), All_Territories_area_mass)
   
 plot(log_model, which = 1)
 plot(log_model, which = 2)
@@ -585,8 +634,13 @@ plot(log_model, which = 2)
 
 ```{r linear regression test summary}
 
+All_Territories_area_mass.lm <- lm(log(territory_area_mm) ~ log(mass_g), data = All_Territories_area_mass)
 
+All_Territories_area_mass.lm
+summary(All_Territories_area_mass.lm)
 
+slope <- coef(All_Territories_area_mass.lm)[2]
+slope
 ```
 
 **The formula for the best fit line can be extracted from the model summary. The two values in the Estimate column are the coefficients - (Intercept) gives the y-intercept, and the variable gives the slope.**
@@ -604,18 +658,64 @@ FenbergTerr
 
 # Plot the Fenberg data with the log transformations
 FenbergTerr |> ggplot() +
- 
+  aes(x = log(mass_g), y = log(area_mm2)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
 
 # Find the slope and intercept of the best fit line
-Fenberg_model <- lm(   )
+FenbergTerr.lm <- lm(log(area_mm2) ~ log(mass_g), data = FenbergTerr)
 
+slope <- coef(FenbergTerr.lm)[2]
+slope
 
+int <- coef(FenbergTerr.lm)[1]
+int
 ```
 
+Y = 0.8916X + 7.9097
+
 Explain your findings!
+
+The line of best equation for the FenbergTerr data displays similar information when compared to the All Sites Data. If the numbers within the equations are rounded, they are almost identical. same slope similar intercept
 
 ### Part 5: EXTRA CREDIT:
 
 #### 5.1 Calculate the slope of best fit regression separately for each site.
 
+```{r}
+Shaws_Cove_area_mass <- All_Territories_area_mass |> 
+  filter(site == "Shaws Cove")
+
+Heisler_Park_area_mass <- All_Territories_area_mass |> 
+  filter(site == "Heisler Park")
+
+Treasure_Cove_area_mass <- All_Territories_area_mass |> 
+  filter(site == "Treasure Cove")
+
+
+Shaws_Cove_area_mass.lm <- lm(log(territory_area_mm) ~ log(mass_g), data = Shaws_Cove_area_mass)
+
+Shaws_slope <- coef(Shaws_Cove_area_mass.lm)[2]
+Shaws_slope
+
+Heisler_Park_area_mass.lm <- lm(log(territory_area_mm) ~ log(mass_g), data = Heisler_Park_area_mass)
+
+Heisler_slope <- coef(Heisler_Park_area_mass.lm)[2]
+Heisler_slope
+
+Treasure_Cove_area_mass.lm <- lm(log(territory_area_mm) ~ log(mass_g), data = Treasure_Cove_area_mass)
+
+Treasure_slope <- coef(Treasure_Cove_area_mass.lm)[2]
+Treasure_slope
+```
+
 #### 5.2 Explore some aspect of the data you find interesting and ask a unique question.
+
+Intersting is data spans several year. what is the difference between territory area and year. perhaps there is a visible difference due to climate change....
+
+```{r}
+All_Territories_area_mass |> ggplot() +
+  aes(x = year, y = territory_area_mm, fill = site) +
+  geom_boxplot()
+
+```
