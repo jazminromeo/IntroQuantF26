@@ -204,5 +204,35 @@ Not sure where to start?
 Go for it!
 
 ```{r}
+# which treatment has the highest mortality rate?
 
+# seedling height data
+
+data |> 
+  group_by(Seedling Ht) |> 
+  summarise(
+    total = n(),
+    dead = sum(Dead_Alive == "Dead", na.rm = TRUE),
+    Survival_Rate = sum(Dead_Alive == "Alive", na.rm = TRUE)/Total)
+  )
+```
+
+```{r}
+# did the data entry team and QA/QC team record different heights?
+
+mismatches <- data |> 
+  filter(Seedling_Ht_cm != QAQC_Seedling_Ht_cm)
+
+mismatches # hopefully returns 0 rows
+```
+
+```{r}
+# does perceptual permittivity (PER) perfectly predict volumetric water content (VWC)?
+
+ggplot(data) +
+  aes(x = PER1_ms, y = VWC1_perc)) +
+    geom_point(aes(color = Treatment)) +
+    geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed") +
+    labs(title = "Sensor Calibration Check (PER1 vs VWC1)") +
+    theme_classic()
 ```
