@@ -208,8 +208,8 @@ Go for it!
 
 # seedling height data
 
-data |> 
-  group_by(Seedling Ht) |> 
+Height_Data |> 
+  group_by(Seedling_Ht_cm) |> 
   summarise(
     total = n(),
     dead = sum(Dead_Alive == "Dead", na.rm = TRUE),
@@ -220,7 +220,7 @@ data |>
 ```{r}
 # did the data entry team and QA/QC team record different heights?
 
-mismatches <- data |> 
+mismatches <- Height_Data |> 
   filter(Seedling_Ht_cm != QAQC_Seedling_Ht_cm)
 
 mismatches # hopefully returns 0 rows
