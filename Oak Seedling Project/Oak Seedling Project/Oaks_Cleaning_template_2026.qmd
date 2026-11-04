@@ -19,6 +19,7 @@ The following worksheet will guide you through developing your research question
 
 ```{r}
 library(tidyverse)
+
 library(readxl)
 ```
 
@@ -145,7 +146,39 @@ In this section we will look at and clean up each of the data sets you identifie
 You may be either examining `SPAD_Data_Raw`, `Height_Data_Raw`, `LICOR_Data_Raw`, or `Moist_Data_Raw` for your ANOVA question. Examine your data set using the diagnostic functions I've given you above in the How to Examine and Clean Data section.
 
 ```{r}
-LICOR_Data_Raw
+# dataset of my choice
+Height_Data_Raw
+
+# checking the counts of rows and columns to checj if the dataset size is correct
+nrow(Height_Data_Raw)
+dim(Height_Data_Raw)
+glimpse(Height_Data_Raw)
+
+# checking column numbers and names
+# checking to make sure they are tidy
+ncol(Height_Data_Raw)
+names(Height_Data_Raw)
+
+# checking unique values in treatment column
+# looking for any formatting issues or typos
+unique(Height_Data_Raw$Treatment)
+## NAs will need to be filtered out
+
+# irregular values
+summary(Height_Data_Raw$Seedling_Ht_cm)
+
+which(Height_Data_Raw$Seedling_Ht_cm == 0.0)
+
+# histogram with proper labels
+ggplot(Height_Data_Raw) +
+  aes(x = Seedling_Ht_cm) +
+  geom_histogram() +
+  labs(
+    x = "Seedling Height (cm)",
+    y = "Number of Seedlings"
+  )
+
+## should display a large number of dead seedlings at 0 cm
 ```
 
 In this next chunk, generate a cleaned data set following the example below. As you examine your raw data and find things to fix, add a #Note to create a list of things to fix up. You can then use pipes and write code to fix each thing in your checklist. This is also where if you identified `filters` or data computations in your Hypothesis worksheet (e.g., choose only one species), you can apply those.
@@ -157,20 +190,15 @@ Read about joins here: <https://r4ds.hadley.nz/joins>
 Check out the illustrative animations on this page: <https://github.com/gadenbuie/tidyexplain?tab=readme-ov-file#mutating-joins>
 
 ```{r}
-Height_Data <- Height_Data_Raw |> 
-  
-LiCor_Data <- LICOR_Data_Raw |> 
-  # Thing to fix #1
-  
-  # Thing to fix #2
-  
-  # Thing to fix #3
-  
-  # use notes like this to create a checklist of the things that need to be fixed, then you can fill in code between each line as you fix them. 
-
-  # Thing to fix #2
-
-  # Thing to fix #3, if doing soil moisture, you will need to take the average and most likely rename it so that it is working properly
+Height_Data_Clean <- Height_Data_Raw |> 
+# filter out dead seedlings to remove 0.0 values
+  filter(Dead_Alive == "Alive") |> 
+# filter out rows where Seedling_Ht_cm is NA
+  filter(!is.na(Seedling_Ht_cm)) |> 
+# convert treatment into a factor
+  mutate(Treatment = as.factor(Treatment))
+# clean data
+Height_Data_Clean
 ```
 
 ### Regression dataset
@@ -179,12 +207,21 @@ Repeat the steps you took for your ANOVA data for your second data set of choice
 
 ```{r}
 # View data set
+SPAD_Data_Raw
 ```
 
 ```{r}
-Data <- _Raw |> 
-   
-  #Things to Fix
+SPAD_Data_Clean <- SPAD_Data_Raw |> 
+# filter out dead saplings, keeping observations that are alive
+  filter(Dead_Alive == "Alive") |> 
+# filter out rows wher Tag Number is blank
+  filter(Tag_Num != "") |> 
+# calculate average leaf value among all 6 columns
+  mutate(Leaf_Average = (Leaf1 + Leaf2 + Leaf3 + Leaf4 + Leaf5 + Leaf6)/6) |> 
+# keeep rows where new average is not missing a value, aka NAs
+  filter(!is.na(Leaf_Average))
+
+SPAD_Data_Clean
 ```
 
 ## Exploratory Data Analysis
@@ -203,36 +240,107 @@ Not sure where to start?
 
 Go for it!
 
+Note to self: To insert a new chunk on Mac, press 'Option", 'Command", and "I".
+
 ```{r}
-# which treatment has the highest mortality rate?
+# which treatment has the highest mortality rate????
 
-# seedling height data
+## seedling height data
+### notice that it is the clean data
 
-Height_Data |> 
-  group_by(Seedling_Ht_cm) |> 
+Survival <- Height_Data_Clean |> 
+  group_by(Treatment) |> 
+# use summarise not summarize, otherwise code will not run
   summarise(
     total = n(),
     dead = sum(Dead_Alive == "Dead", na.rm = TRUE),
-    Survival_Rate = sum(Dead_Alive == "Alive", na.rm = TRUE)/Total)
+    Survival_Rate = sum(Dead_Alive == "Alive", na.rm = TRUE)/total)
+Survival
+
+# when cleaning the data for the ANOVA, i ran a line that deleted all the dead seedlings. since i am using the clean data, i am basically asking R: out of all the seedlings i already confirmed are alive, how many are dead. naturally, R will spit out zero.
+```
+
+```{r}
+# which treatment has the highest mortality rate????
+
+# graph survival by treatment
+## clean data
+
+ggplot(Survival) +
+  aes(x = Treatment, y = Survival_Rate) +
+  geom_col(fill = "coral4") + # r color cheatsheet
+  labs(
+    x = "Treatment",
+    y = "Survival Rate",
+    title = "Seedling Survival Rate by Treatment"
   )
+
+## see chunk above for explanation of the graph/data
 ```
 
 ```{r}
-# did the data entry team and QA/QC team record different heights?
+# which treatment has the highest mortality rate????
 
-mismatches <- Height_Data |> 
-  filter(Seedling_Ht_cm != QAQC_Seedling_Ht_cm)
+## seedling height data
+### notice that it is the raw data now
 
-mismatches # hopefully returns 0 rows
+Survival_Raw <- Height_Data_Raw |> 
+  group_by(Treatment) |> 
+  # use summarise not summarize, otherwise code will not run
+  summarise(
+    total = n(),
+    dead = sum(Dead_Alive == "Dead", na.rm = TRUE),
+    Survival_Rate = sum(Dead_Alive == "Alive", na.rm = TRUE)/total)
+Survival_Raw
+
+# when cleaning the data for the ANOVA, i ran a line that deleted all the dead seedlings. now that i have used the raw data in this chunk, the output shows that the SA treatment has the highest mortality rate with a 0% survival rate. it is followed by the OS treatment, which has a survival rate of 26.7%. NR was the treatment with the highest survival rate, which is 69.6%. lastly, as mentioned previously, this is raw data, so there are 151 empty rows marked as NA that was filtered out previously. i decided to take a look at the raw data again to compare to the clean data.
 ```
 
 ```{r}
-# does perceptual permittivity (PER) perfectly predict volumetric water content (VWC)?
+# which treatment has the highest mortality rate????
 
-ggplot(data) +
-  aes(x = PER1_ms, y = VWC1_perc)) +
-    geom_point(aes(color = Treatment)) +
-    geom_smooth(method = "lm", se = FALSE, color = "black", linetype = "dashed") +
-    labs(title = "Sensor Calibration Check (PER1 vs VWC1)") +
-    theme_classic()
+# graph survival by treatment
+## raw data
+
+  ggplot(Survival_Raw) +
+  aes(x = Treatment, y = Survival_Rate) +
+  geom_col(fill = "coral4") + # r color cheatsheet
+  labs(
+    x = "Treatment",
+    y = "Survival Rate",
+    title = "Seedling Survival Rate by Treatment"
+  )
+  
+# NAs are included in the graph since this is raw data
+## see chunk above for explanation of the graph/data
+```
+
+```{r}
+# treatment v. greenness
+## using SPAD clean data
+
+ggplot(SPAD_Data_Clean) +
+  aes(x = Treatment, y = Leaf_Average, fill = Treatment) +
+  geom_boxplot() +
+  labs(
+    x = "Treatment Group", 
+    y = "Average Chlorophyll Content (SPAD)", # what even is SPAD
+    title = "Distribution of Seedling Greenness by Treatment"
+  )
+
+# SA treatment group missing because all of those seedlings died
+```
+
+```{r}
+# leaf production v. leaf greenness
+## using SPAD clean data
+
+ggplot(SPAD_Data_Clean) +
+  aes(x = Num_leaves, y = Leaf_Average, color = Treatment) +
+  geom_point(size = 2, alpha = 0.8) +
+  labs(
+    x = "Total Leaf Count",
+    y = "Average Leaf Chlorophyll Content (SPAD)",
+    title = "Leaf Production v. Leaf Greenness in Oak Seedlings"
+  )
 ```
