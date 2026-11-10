@@ -1,0 +1,182 @@
+---
+title: "Oak Seedling Draft Analysis"
+author: "Jaz Romero"
+format: html
+editor: visual
+---
+
+## Oak Seedling Draft Analysis
+
+Something here about the project.
+
+### Load packages
+
+Something here about the packages loaded.
+
+```{r}
+library(tidyverse)
+
+library(readxl) 
+```
+
+### Load data
+
+Something here about the loaded data, and how it excludes LiCor.
+
+```{r}
+Height_Data_Raw <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "Seedling Heights")
+Height_Data_Raw
+
+Moist_Data_Raw <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "Soil Moisture")
+Moist_Data_Raw
+
+SPAD_Data_Raw <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "SPAD", 
+             na = "NA")
+SPAD_Data_Raw
+```
+
+## Summary Table
+
+### Raw Height Data
+
+```{r}
+# summarize raw height data
+summary(Height_Data_Raw)
+```
+
+### Clean Height Data
+
+```{r}
+# summarize clean height data
+summary(Height_Data_Clean)
+```
+
+### Raw SPAD Data
+
+```{r}
+# summarize raw SPAD data
+summary(SPAD_Data_Raw)
+```
+
+### Clean SPAD Data
+
+```{r}
+# summarize clean SPAD data
+summary(SPAD_Data_Clean)
+```
+
+## Data Cleaning
+
+### Cleaning data to prepare for ANOVA
+
+```{r}
+# dataset of my choice
+Height_Data_Raw
+
+# checking the counts of rows and columns to checj if the dataset size is correct
+nrow(Height_Data_Raw)
+dim(Height_Data_Raw)
+glimpse(Height_Data_Raw)
+
+# checking column numbers and names
+# checking to make sure they are tidy
+ncol(Height_Data_Raw)
+names(Height_Data_Raw)
+
+# checking unique values in treatment column
+# looking for any formatting issues or typos
+unique(Height_Data_Raw$Treatment)
+## NAs will need to be filtered out
+
+# irregular values
+summary(Height_Data_Raw$Seedling_Ht_cm)
+
+which(Height_Data_Raw$Seedling_Ht_cm == 0.0)
+
+# histogram with proper labels
+ggplot(Height_Data_Raw) +
+  aes(x = Seedling_Ht_cm) +
+  geom_histogram() +
+  labs(
+    x = "Seedling Height (cm)",
+    y = "Number of Seedlings"
+  )
+
+## should display a large number of dead seedlings at 0 cm
+
+# start cleaning
+Height_Data_Clean <- Height_Data_Raw |> 
+  # filter out dead seedlings to remove 0.0 values
+  filter(Dead_Alive == "Alive") |> 
+  # filter out rows where Seedling_Ht_cm is NA
+  filter(!is.na(Seedling_Ht_cm)) |> 
+  # convert treatment into a factor
+  mutate(Treatment = as.factor(Treatment))
+# clean data
+Height_Data_Clean
+```
+
+### Cleaning data to prepare for Regression
+
+```{r}
+# view data set
+SPAD_Data_Raw
+# start cleaning
+SPAD_Data_Clean <- SPAD_Data_Raw |> 
+  # filter out dead saplings, keeping observations that are alive
+  filter(Dead_Alive == "Alive") |> 
+  # filter out rows wher Tag Number is blank
+  filter(Tag_Num != "") |> 
+  # calculate average leaf value among all 6 columns
+  mutate(Leaf_Average = (Leaf1 + Leaf2 + Leaf3 + Leaf4 + Leaf5 + Leaf6)/6) |> 
+  # keeep rows where new average is not missing a value, aka NAs
+  filter(!is.na(Leaf_Average))
+
+SPAD_Data_Clean
+```
+
+## ANOVA
+
+### Does soil moisture treatment significantly influence leaf chlorophyll content (SPAD)? Does leaf chlorophyll content change between October 8th, 2026, and October 15th, 2026? Is there an interaction effect between the soil moisture treatment and the date on SPAD?
+
+Null Hypothesis (H0): There is no significant difference in mean leaf chlorophyll content (SPAD) across different soil moisture treatments, dates, or their interaction.
+
+Alternative Hypothesis (HA): TThere is a significant difference in mean leaf chlorophyll content (SPAD) based on soil moisture treatment, date, or their interaction. Specifically, the impact of the moisture treatment on SPAD depends on which date is being observed.
+
+```{r}
+# Assumption/Normality Test
+```
+
+```{r}
+# Statistical Test
+```
+
+```{r}
+# Nice figure
+```
+
+## Regression
+
+### Does sapling height significantly predict the total leaf count of an individual sapling?
+
+Null hypothesis (H0): Sapling height does not significantly predict leaf count. Taller saplings do not systematically have more or fewer leaves than shorter saplings (the true population slope is equal to zero).
+
+Alternative Hypothesis (HA): Sapling height significantly predicts leaf count. As sapling height increases, the total leaf count changes in a predictable linear trend.
+
+```{r}
+# Assumption/Normality Test
+```
+
+```{r}
+# Statistical Test
+```
+
+```{r}
+# Nice figure
+```
