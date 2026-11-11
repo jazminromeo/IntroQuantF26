@@ -11,8 +11,6 @@ Something here about the project.
 
 ### Load packages
 
-Something here about the packages loaded.
-
 ```{r}
 library(tidyverse)
 
@@ -20,8 +18,6 @@ library(readxl)
 ```
 
 ### Load data
-
-Something here about the loaded data, and how it excludes LiCor.
 
 ```{r}
 Height_Data_Raw <- 
@@ -55,6 +51,20 @@ summary(Height_Data_Raw)
 ```{r}
 # summarize clean height data
 summary(Height_Data_Clean)
+```
+
+### Raw Soil Moisture Data
+
+```{r}
+# summarize raw Soil Moisture data
+summary(Moist_Data_Raw)
+```
+
+### Clean Soil Moisture Data
+
+```{r}
+# summarize clean Soil Moisture data
+summary(Moist_Data_Clean)
 ```
 
 ### Raw SPAD Data
@@ -159,7 +169,7 @@ Moist_Data_Clean
 ### Cleaning data to prepare for Regression
 
 ```{r}
-# view data set
+# view raw SPAD data set
 SPAD_Data_Raw
 # start cleaning
 SPAD_Data_Clean <- SPAD_Data_Raw |> 
@@ -169,9 +179,10 @@ SPAD_Data_Clean <- SPAD_Data_Raw |>
   filter(Tag_Num != "") |> 
   # calculate average leaf value among all 6 columns
   mutate(Leaf_Average = (Leaf1 + Leaf2 + Leaf3 + Leaf4 + Leaf5 + Leaf6)/6) |> 
-  # keeep rows where new average is not missing a value, aka NAs
-  filter(!is.na(Leaf_Average))
-
+  mutate(
+    Treatment = as.factor(Treatment),
+    Date = as.factor(Date)
+  )
 SPAD_Data_Clean
 ```
 
@@ -181,18 +192,58 @@ SPAD_Data_Clean
 
 Null Hypothesis (H0): There is no significant difference in mean leaf chlorophyll content (SPAD) across different soil moisture treatments, dates, or their interaction.
 
-Alternative Hypothesis (HA): TThere is a significant difference in mean leaf chlorophyll content (SPAD) based on soil moisture treatment, date, or their interaction. Specifically, the impact of the moisture treatment on SPAD depends on which date is being observed.
+Alternative Hypothesis (HA): There is a significant difference in mean leaf chlorophyll content (SPAD) based on soil moisture treatment, date, or their interaction. Specifically, the impact of the moisture treatment on SPAD depends on which date is being observed.
 
 ```{r}
-# Assumption/Normality Test
+# assumption/normality test
+model_SPAD <- lm(Leaf_Average ~ Treatment * Date, data = SPAD_Data_Clean)
+
+plot(model_SPAD, which = 1)
+plot(model_SPAD, which = 2)
+
+# creating a QQ plot of residuals
+ggpubr::ggqqplot(residuals(model_SPAD))
+
+# levene's test
+SPAD_Data_Clean |> 
+  rstatix::levene_test(Leaf_Average ~ Treatment * Date)
 ```
 
 ```{r}
-# Statistical Test
+# statistical test
+
+# method 2 from lab 6 (two-way anova): using aov() and summary() to prepare for the Tukey HSD check
+model_SPAD_aov <- aov(Leaf_Average ~ Treatment * Date, data = SPAD_Data_Clean)
+# summary
+summary(model_SPAD_aov)
+
+# pairwise differences post-hoc check
+TukeyHSD(model_SPAD_aov)
 ```
 
 ```{r}
-# Nice figure
+# nice figure
+
+# calculate the summary statistics
+SPAD_summary <- SPAD_Data_Clean |> 
+  group_by(Date, Treatment) |> 
+  summarise(
+    mean = mean(Leaf_Average), 
+    se = sd(Leaf_Average) / sqrt(length(Leaf_Average)),
+    .groups = "drop"
+  )
+
+# bar chart
+ggplot(SPAD_summary) + 
+  aes(x = Date, y = mean, fill = Treatment) + 
+  geom_col(position = "dodge") + 
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se), position = position_dodge(0.9), width = 0.2) +
+  labs(
+    x = "Sampling Date",
+    y = "Mean Leaf Chlorophyll Content (SPAD)",
+    fill = "Treatment"
+  ) +
+  theme_classic()
 ```
 
 ## Regression
@@ -204,13 +255,76 @@ Null hypothesis (H0): Sapling height does not significantly predict leaf count. 
 Alternative Hypothesis (HA): Sapling height significantly predicts leaf count. As sapling height increases, the total leaf count changes in a predictable linear trend.
 
 ```{r}
-# Assumption/Normality Test
+# before beginning...
+
+# ensure both use factor
+Height_Data_Clean <- Height_Data_Clean |> 
+  mutate(Date = as.factor(Date))
+
+# join the two data sets
+Reg_Data <- inner_join(Height_Data_Clean, SPAD_Data_Clean, by = c("Tag_Num", "Date"))
+
+# checking if the names are as i need them
+names(Reg_Data)
 ```
 
 ```{r}
-# Statistical Test
+# assumption/normality test
+
+# ensure Num_leaves is numeric and has no missing values
+Reg_Data <- Reg_Data |> 
+  mutate(Num_leaves = as.numeric(Num_leaves)) |> 
+  filter(!is.na(Num_leaves))
+
+# visualize the data to check for linear relationship
+ggplot(Reg_Data) + 
+  aes(Seedling_Ht_cm, Num_leaves) +
+  geom_point()
+
+# check normality of the response variable using a histogram
+hist(Reg_Data$Num_leaves)
+hist(Reg_Data$Seedling_Ht_cm)
+
+# check homoscedasticity (equal variance)
+height.lm <- lm(Num_leaves ~ Seedling_Ht_cm, data = Reg_Data)
+plot(height.lm, which = 1)
 ```
 
 ```{r}
-# Nice figure
+# statistical test
+
+# fit the simple linear regression model
+height.lm <- lm(Num_leaves ~ Seedling_Ht_cm, data = Reg_Data)
+height.lm
+summary(height.lm)
+
+# extract slope and intercept
+slope <- coef(height.lm)[2]
+slope
+
+int <- coef(height.lm)[1]
+int
+
+# extract p-value for slope
+summary(height.lm)$coefficients[2, 4]
+
+# extract R-squared value
+Rsq <- summary(height.lm)$r.squared
+Rsq
+```
+
+```{r}
+# nice figure
+
+# plot dat regression
+Height_plot <- ggplot(Reg_Data) + 
+  aes(Seedling_Ht_cm, Num_leaves) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    x = "Seedling Height (cm)",
+    y = "Total Leaf Count"
+  )
+
+Height_plot
 ```
