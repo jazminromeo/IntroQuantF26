@@ -76,7 +76,7 @@ summary(SPAD_Data_Clean)
 ### Cleaning data to prepare for ANOVA
 
 ```{r}
-# dataset of my choice
+# view raw Height data set
 Height_Data_Raw
 
 # checking the counts of rows and columns to checj if the dataset size is correct
@@ -120,6 +120,40 @@ Height_Data_Clean <- Height_Data_Raw |>
   mutate(Treatment = as.factor(Treatment))
 # clean data
 Height_Data_Clean
+```
+
+```{r}
+# view raw Soil Moisture data set
+Moist_Data_Raw
+
+# checking the counts of rows and columns to checj if the dataset size is correct
+nrow(Moist_Data_Raw)
+dim(Moist_Data_Raw)
+glimpse(Moist_Data_Raw)
+
+# checking column numbers and names
+# checking to make sure they are tidy
+ncol(Moist_Data_Raw)
+names(Moist_Data_Raw)
+
+# checking unique values in treatment column
+# looking for any formatting issues or typos
+unique(Moist_Data_Raw$FLAG)
+## NAs will need to be filtered out
+
+# start cleaning
+Moist_Data_Clean <- Moist_Data_Raw |> 
+# convert to double
+  mutate(
+    VWC1_perc = as.double(VWC1_perc),
+    VWC2_perc = as.double(VWC2_perc),
+    VWC3_perc = as.double(VWC3_perc)
+  ) |>
+  mutate(
+    VWC_Mean = mean(c(VWC1_perc, VWC2_perc, VWC3_perc), na.rm = TRUE)
+  )
+# clean data
+Moist_Data_Clean
 ```
 
 ### Cleaning data to prepare for Regression
