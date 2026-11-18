@@ -89,7 +89,7 @@ summary(SPAD_Data_Clean)
 # view raw Height data set
 Height_Data_Raw
 
-# checking the counts of rows and columns to checj if the dataset size is correct
+# checking the counts of rows and columns to check if the dataset size is correct
 nrow(Height_Data_Raw)
 dim(Height_Data_Raw)
 glimpse(Height_Data_Raw)
@@ -164,6 +164,9 @@ Moist_Data_Clean <- Moist_Data_Raw |>
   )
 # clean data
 Moist_Data_Clean
+
+#### VWC1_perc originally did not want to run
+##### found a solution on an open source/ threads of RStudio help
 ```
 
 ### Cleaning data to prepare for Regression
@@ -188,7 +191,7 @@ SPAD_Data_Clean
 
 ## ANOVA
 
-### Does soil moisture treatment significantly influence leaf chlorophyll content (SPAD)? Does leaf chlorophyll content change between October 8th, 2026, and October 15th, 2026? Is there an interaction effect between the soil moisture treatment and the date on SPAD?
+### Does soil moisture treatment influence leaf chlorophyll content (SPAD)? Does leaf chlorophyll content change between October 8th, 2026, and October 15th, 2026? Is there an interaction effect between the soil moisture treatment and the date on SPAD?
 
 Null Hypothesis (H0): There is no significant difference in mean leaf chlorophyll content (SPAD) across different soil moisture treatments, dates, or their interaction.
 
@@ -196,7 +199,7 @@ Alternative Hypothesis (HA): There is a significant difference in mean leaf chlo
 
 ```{r}
 # assumption/normality test
-model_SPAD <- lm(Leaf_Average ~ Treatment * Date, data = SPAD_Data_Clean)
+model_SPAD <- lm(Leaf_Average ~ Treatment * Date + Block, data = SPAD_Data_Clean)
 
 plot(model_SPAD, which = 1)
 plot(model_SPAD, which = 2)
@@ -237,18 +240,29 @@ SPAD_summary <- SPAD_Data_Clean |>
 ggplot(SPAD_summary) + 
   aes(x = Date, y = mean, fill = Treatment) + 
   geom_col(position = "dodge") + 
-  geom_errorbar(aes(ymin = mean - se, ymax = mean + se), position = position_dodge(0.9), width = 0.2) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                position = position_dodge(0.9), width = 0.2) +
   labs(
     x = "Sampling Date",
     y = "Mean Leaf Chlorophyll Content (SPAD)",
     fill = "Treatment"
   ) +
   theme_classic()
+
+## Treatments
+# AC = adult/mature canopy
+# DT = downed tree
+# NR = naturally recruited
+# OS = open space
+
+
+
+##### GO BACK AND FIX THIS
 ```
 
 ## Regression
 
-### Does sapling height significantly predict the total leaf count of an individual sapling?
+### Does sapling height predict the total leaf count of an individual sapling?
 
 Null hypothesis (H0): Sapling height does not significantly predict leaf count. Taller saplings do not systematically have more or fewer leaves than shorter saplings (the true population slope is equal to zero).
 

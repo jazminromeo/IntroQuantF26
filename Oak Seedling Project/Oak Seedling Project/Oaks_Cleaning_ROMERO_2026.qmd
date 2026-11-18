@@ -145,6 +145,8 @@ In this section we will look at and clean up each of the data sets you identifie
 
 You may be either examining `SPAD_Data_Raw`, `Height_Data_Raw`, `LICOR_Data_Raw`, or `Moist_Data_Raw` for your ANOVA question. Examine your data set using the diagnostic functions I've given you above in the How to Examine and Clean Data section.
 
+Irissa's feedback: For height data: OA and OS are the same thing, it was mis-entered and should have been changed to be the same treatment code.
+
 ```{r}
 # dataset of my choice
 Height_Data_Raw
@@ -203,7 +205,9 @@ Height_Data_Clean
 
 ### Regression dataset
 
-Repeat the steps you took for your ANOVA data for your second data set of choice/
+Repeat the steps you took for your ANOVA data for your second data set of choice.
+
+Irissa's feedback: For SPAD cleaning: By removing tag_num = NA you removed multiple NR seedlings that didn't have numbers but did have values (and kept other NR with tag numbers). When you created the new mean column, any seedlings with any NA values for even a single leaf got a mean of NA which you then removed. The results was many fewer rows in your final dataframe than there should have been.
 
 ```{r}
 # View data set
@@ -275,7 +279,8 @@ ggplot(Survival) +
     title = "Seedling Survival Rate by Treatment"
   )
 
-## see chunk above for explanation of the graph/data
+##explanation
+# when cleaning the data for the ANOVA, i ran a line that deleted all the dead seedlings. since i am using the clean data, i am basically asking R: out of all the seedlings i already confirmed are alive, how many are dead. naturally, R will spit out zero.
 ```
 
 ```{r}
@@ -293,6 +298,7 @@ Survival_Raw <- Height_Data_Raw |>
     Survival_Rate = sum(Dead_Alive == "Alive", na.rm = TRUE)/total)
 Survival_Raw
 
+## explanation
 # when cleaning the data for the ANOVA, i ran a line that deleted all the dead seedlings. now that i have used the raw data in this chunk, the output shows that the SA treatment has the highest mortality rate with a 0% survival rate. it is followed by the OS treatment, which has a survival rate of 26.7%. NR was the treatment with the highest survival rate, which is 69.6%. lastly, as mentioned previously, this is raw data, so there are 151 empty rows marked as NA that was filtered out previously. i decided to take a look at the raw data again to compare to the clean data.
 ```
 
@@ -312,7 +318,9 @@ Survival_Raw
   )
   
 # NAs are included in the graph since this is raw data
-## see chunk above for explanation of the graph/data
+  
+## explanation
+# 
 ```
 
 ```{r}
@@ -329,6 +337,9 @@ ggplot(SPAD_Data_Clean) +
   )
 
 # SA treatment group missing because all of those seedlings died
+
+## explanation
+# explanation here
 ```
 
 ```{r}
@@ -343,4 +354,7 @@ ggplot(SPAD_Data_Clean) +
     y = "Average Leaf Chlorophyll Content (SPAD)",
     title = "Leaf Production v. Leaf Greenness in Oak Seedlings"
   )
+
+## explanation
+# 
 ```
