@@ -161,7 +161,8 @@ Moist_Data_Clean <- Moist_Data_Raw |>
   ) |>
   mutate(
     VWC_Mean = mean(c(VWC1_perc, VWC2_perc, VWC3_perc), na.rm = TRUE)
-  )
+  ) |> 
+  ungroup()
 # clean data
 Moist_Data_Clean
 
@@ -341,4 +342,130 @@ Height_plot <- ggplot(Reg_Data) +
   )
 
 Height_plot
+```
+
+```{r}
+# table for paper
+
+# nice figure
+
+# calculate the summary statistics
+SPAD_summary <- SPAD_Data_Clean |> 
+  group_by(Date, Treatment) |> 
+  summarise(
+    mean = mean(Leaf_Average, na.rm = TRUE), 
+    se = sd(Leaf_Average, na.rm = TRUE) / sqrt(sum(!is.na(Leaf_Average))),
+    .groups = "drop"
+  )
+
+# bar chart
+ggplot(SPAD_summary) + 
+  aes(x = Date, y = mean, fill = Treatment) + 
+  geom_col(position = "dodge") + 
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                position = position_dodge(0.9), width = 0.2) +
+  labs(
+    title = "Leaf chlorophyll content (SPAD) of Quercus agrifolia saplings
+    across microhabitat treatments before and after rainfall",
+    x = "Sampling Date",
+    y = "Mean Leaf Chlorophyll Content (SPAD)",
+    fill = "Treatment"
+  ) +
+  theme_classic()
+```
+
+```{r}
+# fig 2
+
+Height_plot <- ggplot(Reg_Data) + 
+  aes(Seedling_Ht_cm, Num_leaves) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(
+    title = "Sapling Height vs. Total Leaf Count in Q. agrifolia", 
+    x = "Seedling Height (cm)",
+    y = "Total Leaf Count"
+  ) +
+  theme_classic()
+
+Height_plot
+```
+
+```{r}
+# table
+
+# 2. Clean & Standardize All Three Datasets
+Height_Data_Clean <- Height_Data_Raw |> 
+  filter(Dead_Alive == "Alive", !is.na(Seedling_Ht_cm)) |> 
+  mutate(
+    Date = as.character(as.Date(Date)),
+    Treatment = trimws(as.character(Treatment)),
+    Treatment = ifelse(Treatment == "OS", "OA", Treatment),
+    Treatment = factor(Treatment, levels = c("AC", "DT", "NR", "OA"))
+  )
+
+Moist_Data_Clean <- Moist_Data_Raw |> 
+  mutate(
+    Date = as.character(as.Date(Date)),
+    Date = ifelse(Date != "2026-10-08", "2026-10-15", Date),
+    Treatment = trimws(as.character(Treatment)),
+    Treatment = ifelse(Treatment == "OS", "OA", Treatment),
+    Treatment = factor(Treatment, levels = c("AC", "DT", "NR", "OA")),
+    VWC1_perc = as.double(VWC1_perc),
+    VWC2_perc = as.double(VWC2_perc),
+    VWC3_perc = as.double(VWC3_perc)
+  ) |>
+  rowwise() |> 
+  mutate(VWC_Mean = mean(c(VWC1_perc, VWC2_perc, VWC3_perc), na.rm = TRUE)) |> 
+  ungroup()
+
+SPAD_Data_Clean <- SPAD_Data_Raw |> 
+  filter(Dead_Alive == "Alive", !is.na(Tag_Num), Tag_Num != "") |> 
+  mutate(
+    Date = as.character(as.Date(Date)),
+    Treatment = trimws(as.character(Treatment)),
+    Treatment = ifelse(Treatment == "OS", "OA", Treatment),
+    Treatment = factor(Treatment, levels = c("AC", "DT", "NR", "OA")),
+    Leaf_Average = rowMeans(across(Leaf1:Leaf6), na.rm = TRUE)
+  )
+
+# 3. Summarize Each Variable
+VWC_table <- Moist_Data_Clean |> 
+  group_by(Date, Treatment) |> 
+  summarise(
+    VWC_mean = mean(VWC_Mean, na.rm = TRUE),
+    VWC_se = sd(VWC_Mean, na.rm = TRUE) / sqrt(sum(!is.na(VWC_Mean))),
+    .groups = "drop"
+  )
+
+SPAD_summary <- SPAD_Data_Clean |> 
+  group_by(Date, Treatment) |> 
+  summarise(
+    SPAD_mean = mean(Leaf_Average, na.rm = TRUE), 
+    SPAD_se = sd(Leaf_Average, na.rm = TRUE) / sqrt(sum(!is.na(Leaf_Average))),
+    .groups = "drop"
+  )
+
+Height_table <- Height_Data_Clean |> 
+  group_by(Date, Treatment) |> 
+  summarise(
+    n = n(),
+    Ht_mean = mean(Seedling_Ht_cm, na.rm = TRUE),
+    Ht_se = sd(Seedling_Ht_cm, na.rm = TRUE) / sqrt(n),
+    .groups = "drop"
+  )
+
+# 4. Build & Print Final Table 1
+Table_1 <- Height_table |> 
+  left_join(VWC_table, by = c("Date", "Treatment")) |> 
+  left_join(SPAD_summary, by = c("Date", "Treatment")) |> 
+  mutate(
+    `Soil VWC (%)` = ifelse(is.na(VWC_se), sprintf("%.2f", VWC_mean), sprintf("%.2f ± %.2f", VWC_mean, VWC_se)),
+    `Leaf SPAD` = ifelse(is.na(SPAD_se), sprintf("%.2f", SPAD_mean), sprintf("%.2f ± %.2f", SPAD_mean, SPAD_se)),
+    `Sapling Height (cm)` = sprintf("%.2f ± %.2f", Ht_mean, Ht_se)
+  ) |> 
+  select(Date, Treatment, n, `Soil VWC (%)`, `Leaf SPAD`, `Sapling Height (cm)`)
+
+knitr::kable(Table_1)
+
 ```
